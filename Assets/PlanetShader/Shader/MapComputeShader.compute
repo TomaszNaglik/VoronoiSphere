@@ -1,0 +1,28 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel Spheres
+
+//variables
+RWStructuredBuffer<float3> Result;
+
+[numthreads(64, 1, 1)]
+void Spheres(uint3 id : SV_DispatchThreadID)
+{
+    uint numStructs;
+    uint stride;
+
+    Result.GetDimensions(numStructs, stride);
+    double PI = 3.14159265;
+    double sqr5 = 3 - 2.2360679775;
+    double dl = PI * sqr5;
+    double dz = 2. / numStructs;
+    double l = id.x * dl;
+    double z = 1 - dz / 2. - id.x * dz;
+
+    double r = sqrt(1 - z * z);
+    double x = cos(l) * r;
+    double y = sin(l) * r;
+
+    Result[id.x] = float3((float)x, (float)z, (float)y)*100;
+}
+
+
