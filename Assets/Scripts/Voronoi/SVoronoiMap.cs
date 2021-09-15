@@ -51,6 +51,7 @@ public class SVoronoiMap : MonoBehaviour
         
         if(UpdateMap) InitializeMap();
         
+        
         if (Input.GetKeyDown(KeyCode.Space))
         {
             
@@ -61,6 +62,8 @@ public class SVoronoiMap : MonoBehaviour
             
             HandleInput();
         }
+        Number_Of_Points++;
+        //offset = (float)Math.Sin(Time.time/2)/2+0.5f;
     }
 
     void InitializeMap()
@@ -70,7 +73,7 @@ public class SVoronoiMap : MonoBehaviour
         
 
         //mesh = GetComponent<MeshFilter>().mesh;
-        mapChunks = GenerateMapChunks();
+        //mapChunks = GenerateMapChunks();
         spherePoints = GeneratePoints();
         projectedPoints = ProjectStereographically(spherePoints);
         learpedPoints = LearpedPoints(spherePoints, projectedPoints, offset);
@@ -82,13 +85,13 @@ public class SVoronoiMap : MonoBehaviour
         
 
 
-        cells = GenerateVoronoiCell(sDelanuator.Points);
+       /* cells = GenerateVoronoiCell(sDelanuator.Points);
         SetupCells(cells);
         AssignCellsToChunks(cells);
         foreach (VoronoiMesh chunk in mapChunks)
         {
-            chunk.Triangulate();
-        }
+           // chunk.Triangulate();
+        }*/
         
 
     }
@@ -293,8 +296,8 @@ public class SVoronoiMap : MonoBehaviour
                 double x = Math.Cos(l) * r;
                 double y = Math.Sin(l) * r;
 
-                points[k] = new Vector3((float)x, (float)z, (float)y) * Planet_Radius;
-                points[k] = Vector3.Cross(points[k],  Offset()).normalized * Planet_Radius;
+                points[k] = new Vector3((float)x, (float)y, (float)z) * Planet_Radius;
+                //points[k] = Vector3.Cross(points[k],  Offset()).normalized * Planet_Radius;
                 z = z - dz;
                 l = l + dl;
 
@@ -351,11 +354,11 @@ public class SVoronoiMap : MonoBehaviour
         // Draw a yellow sphere at the transform's position
         Gizmos.color = Color.yellow;
 
-        for(int i=0; i<sDelanuator.edgePoints.Count;i++)
+        for(int i=0; i<learpedPoints.Length;i++)
         {
-            Vector3 position = sDelanuator.edgePoints[i];
+            Vector3 position = learpedPoints[i];
             Gizmos.color = Color.yellow;
-            if (position.z < 0) Gizmos.color = Color.red;
+            //if (position.z < 0) Gizmos.color = Color.red;
             Gizmos.DrawSphere(position, GizmoSize);
             //Gizmos.DrawLine(position, lonePoint);
         }

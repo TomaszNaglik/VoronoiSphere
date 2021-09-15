@@ -69,11 +69,14 @@
     <Compile Include="Assets\Scripts\Voronoi\SVoronoiCell.cs" />
     <Compile Include="Assets\Scripts\Voronoi\SVoronoiEdge.cs" />
     <Compile Include="Assets\Scripts\Voronoi\SVoronoiMap.cs" />
+    <Compile Include="Assets\Scripts\Voronoi\SVoronoiMapGPU.cs" />
+    <Compile Include="Assets\Scripts\Voronoi\Structs.cs" />
+    <Compile Include="Assets\Scripts\Voronoi\Utils.cs" />
     <Compile Include="Assets\Scripts\Voronoi\VParams.cs" />
-    <Compile Include="Assets\Scripts\Voronoi\VoronoiMapGenerator.cs" />
     <Compile Include="Assets\Scripts\Voronoi\VoronoiMesh.cs" />
     <None Include="Assets\Materials\Ocean_Shader_Unlit.shader" />
     <None Include="Assets\PlanetShader\Shader\Planet.shader" />
+    <None Include="Assets\Scripts\Voronoi\CS_Edges.compute" />
     <None Include="Assets\PlanetShader\Shader\MapComputeShader.compute" />
     <None Include="Assets\Materials\Ocean_Shader.shader" />
     <Reference Include="Unity.Timeline.Editor">

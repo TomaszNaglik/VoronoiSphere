@@ -156,8 +156,8 @@ Camera:
   m_GameObject: {fileID: 827144161}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_ClearFlags: 2
+  m_BackGroundColor: {r: 0.084905654, g: 0.18396224, b: 0.33962262, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -308,6 +308,7 @@ GameObject:
   - component: {fileID: 1347192189}
   - component: {fileID: 1347192192}
   - component: {fileID: 1347192191}
+  - component: {fileID: 1347192193}
   m_Layer: 0
   m_Name: VoronoiMap
   m_TagString: Untagged
@@ -322,20 +323,20 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1347192188}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 179311cc9937ede448cb0789dd09e75c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Number_Of_Points: 10000
+  Number_Of_Points: 3
   Planet_Radius: 100
-  GizmoSize: 0.1
+  GizmoSize: 3
   PointsPerChunk: 0
   NumChunksHeight: 20
   NumChunksWidth: 40
   VoronoiMeshPrefab: {fileID: 8002746552308006434, guid: 0ccaedd7223d96e48ac2aea8048b1971,
     type: 3}
-  UpdateMap: 0
+  UpdateMap: 1
   JitterAmount: 1.54
   offset: 0
 --- !u!4 &1347192190
@@ -399,6 +400,24 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+--- !u!114 &1347192193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1347192188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86f93e43c5d8c3445b4e3bbe5e157d89, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  UpdateFrame: 0
+  NumberOfCells: 20
+  ShowPoints: 0
+  ShowTriangles: 0
+  ShowCells: 0
+  CS_Edges: {fileID: 7200000, guid: 9bf3470d80cbca840b3b4a80498f57ac, type: 3}
 --- !u!1 &1911340452
 GameObject:
   m_ObjectHideFlags: 0

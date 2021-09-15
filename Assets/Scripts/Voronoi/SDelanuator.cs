@@ -13,7 +13,17 @@ public class SDelanuator
     Vector3[] points;
     private Delaunator delaunator;
     public List<Vector3> edgePoints;
+    //private static float Planet_Radius = 10;
 
+    public SDelanuator(Vector3[] _points)
+    {
+        delaunator = new Delaunator(ProjectStereographically(_points));
+        Triangles = delaunator.Triangles;
+        HalfEdges = delaunator.Halfedges;
+        Points = _points;
+        Augment();
+        
+    }
     public SDelanuator(Delaunator delaunator, Vector3[] _points)
     {
         Triangles = delaunator.Triangles;
@@ -21,6 +31,8 @@ public class SDelanuator
         Points = _points;
         Augment();
     }
+
+
 
     public int[] Triangles { get => triangles; set => triangles = value; }
     public int[] HalfEdges { get => halfEdges; set => halfEdges = value; }
@@ -161,4 +173,21 @@ public class SDelanuator
     {
         return (e % 3 == 2) ? e - 2 : e + 1; 
     }
+
+    private IPoint[] ProjectStereographically(Vector3[] spherePoints)
+    {
+        IPoint[] projected = new IPoint[spherePoints.Length];
+        for (int i = 0; i < spherePoints.Length; i++)
+        {
+            Vector3 projectedPoint = new Vector3();
+            projectedPoint.x = spherePoints[i].x / (1 - spherePoints[i].z) * 1;
+            projectedPoint.y = spherePoints[i].y / (1 - spherePoints[i].z) * 1;
+            projectedPoint.z = 0;
+
+            projected[i] = new Point(projectedPoint.x, projectedPoint.y);
+        }
+
+        return projected;
+    }
+
 }
