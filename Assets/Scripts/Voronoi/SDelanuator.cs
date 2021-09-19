@@ -13,14 +13,16 @@ public class SDelanuator
     Vector3[] points;
     private Delaunator delaunator;
     public List<Vector3> edgePoints;
+    private int Scale;
     //private static float Planet_Radius = 10;
 
-    public SDelanuator(Vector3[] _points)
+    public SDelanuator(Vector3[] _points, int _Scale)
     {
-        delaunator = new Delaunator(ProjectStereographically(_points));
+        delaunator = new Delaunator(ProjectStereographically(_points, _Scale));
         Triangles = delaunator.Triangles;
         HalfEdges = delaunator.Halfedges;
         Points = _points;
+        Scale = _Scale;
         Augment();
         
     }
@@ -97,6 +99,7 @@ public class SDelanuator
             lonePoint += edgePoints[i];
         }
         lonePoint /= edgePoints.Count;
+        lonePoint = lonePoint.normalized * Scale;
         List<Vector3> controlPoints = new List<Vector3>(edgePoints);
         List<int> controlIndices = new List<int>(edgeIndices);
 
@@ -133,20 +136,29 @@ public class SDelanuator
 
     private void AddHalfEdges(int startIndexOfAddedTriangles, int lonePointIndex)
     {
-
+        
         int InititalHalfEdgeCount = HalfEdges.Length;
         //Inititalize remaining halfedges to -1
         for(int i= InititalHalfEdgeCount; i < Triangles.Length; i++)
         {
             AddHalfEdge(-1);
         }
-
-        for(int i= InititalHalfEdgeCount; i< Triangles.Length; i++)
+        //Utils.LogArray("Triangles: ", Triangles);
+        //Utils.LogArray("HalfEdges after: ", HalfEdges);
+        for (int i= InititalHalfEdgeCount; i< Triangles.Length; i++)
         {
             int p1 = Triangles[i];
             int p2 = (i +1) % 3 == 0 ? Triangles[i - 2] : Triangles[i + 1];
             int h = FindIndexOfEdge(p2, p1);
+            /*if(h==-2)
+            {
+                 Utils.LogArray("Triangles: ", Triangles);
+                Utils.LogArray("HalfEdges after: ", HalfEdges);
+                Debug.LogFormat("Halfedges length {0} - h: {1}, Triangles length: {2}, p1: {3}, p2: {4}, i: {5}", HalfEdges.Length, h, Triangles.Length, p1, p2, i);
+            }*/
             HalfEdges[i] = h;
+
+            //Debug.LogFormat("Halfedges length {0} - h: {1}, Triangles length: {2}, p1: {3}, p2: {4}, i: {5}", HalfEdges.Length, h, Triangles.Length, p1, p2,i);
             if (HalfEdges[h] == -1)
             {
                 HalfEdges[h] = i;
@@ -166,7 +178,7 @@ public class SDelanuator
             if (v1 == p1 && v2 == p2)
                 return i;
         }
-        return -1;
+        return -2;
     }
 
     public int NextHalfedge(int e)
@@ -174,14 +186,14 @@ public class SDelanuator
         return (e % 3 == 2) ? e - 2 : e + 1; 
     }
 
-    private IPoint[] ProjectStereographically(Vector3[] spherePoints)
+    private IPoint[] ProjectStereographically(Vector3[] spherePoints, int size)
     {
         IPoint[] projected = new IPoint[spherePoints.Length];
         for (int i = 0; i < spherePoints.Length; i++)
         {
             Vector3 projectedPoint = new Vector3();
-            projectedPoint.x = spherePoints[i].x / (1 - spherePoints[i].z) * 1;
-            projectedPoint.y = spherePoints[i].y / (1 - spherePoints[i].z) * 1;
+            projectedPoint.x = spherePoints[i].x / (size - spherePoints[i].z) * size;
+            projectedPoint.y = spherePoints[i].y / (size - spherePoints[i].z) * size;
             projectedPoint.z = 0;
 
             projected[i] = new Point(projectedPoint.x, projectedPoint.y);

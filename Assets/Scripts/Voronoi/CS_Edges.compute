@@ -3,12 +3,14 @@
 
 struct Edge
 {
-    int id;
+    
+    uint id;
+    uint active;
     float3 A;
     float3 B;
 
-    int cell_1;
-    int cell_2;
+    uint cell_1;
+    uint cell_2;
 };
 
 
@@ -16,14 +18,15 @@ RWStructuredBuffer <Edge> Edges_Buffer;
 StructuredBuffer <int> Triangles;
 StructuredBuffer <int> Halfedges;
 StructuredBuffer <float3> Points;
+int Scale;
 
 float3 GetTriangleCenter(float3 a, float3 b, float3 c) 
 {
     float3 center = float3((a.x+b.x+c.x)/3, (a.y + b.y + c.y) / 3, (a.z + b.z + c.z) / 3);
-    return center;
+    return normalize(center);
 }
 
-[numthreads(10,1,1)]
+[numthreads(100,1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     int i = id.x;
@@ -32,8 +35,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     edge.cell_1 = Triangles[i];
     edge.cell_2 = Triangles[Halfedges[i]];
-    edge.id = i;
 
+    int x = edge.cell_1 > edge.cell_2 ? edge.cell_1 : edge.cell_2;
+    int y = edge.cell_1 < edge.cell_2 ? edge.cell_1 : edge.cell_2;
+    edge.id = i;
+    edge.active = i < Halfedges[i] ? 1 : 0;
     int a = 0;
     int b = 0;
     int c = 0;
@@ -58,7 +64,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         c = i;
     }
 
-    edge.A = GetTriangleCenter(Points[Triangles[a]], Points[Triangles[b]], Points[Triangles[c]]);
+    edge.A = GetTriangleCenter(Points[Triangles[a]], Points[Triangles[b]], Points[Triangles[c]]) * Scale;
 
     //find second triangle
     uint cell_2_Triangle_Index = Halfedges[i] % 3;
@@ -81,7 +87,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         c = Halfedges[i];
     }
 
-    edge.B = GetTriangleCenter(Points[Triangles[a]], Points[Triangles[b]], Points[Triangles[c]]);
+    edge.B = GetTriangleCenter(Points[Triangles[a]], Points[Triangles[b]], Points[Triangles[c]]) * Scale;
     
    
 

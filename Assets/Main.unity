@@ -198,7 +198,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 827144161}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalPosition: {x: 0, y: 1, z: 2.63}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -413,10 +413,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   UpdateFrame: 0
-  NumberOfCells: 20
+  NumberOfCells: 10
   ShowPoints: 0
   ShowTriangles: 0
   ShowCells: 0
+  Jitter: 0
+  RandomSeed: 0
+  Scale: 1
   CS_Edges: {fileID: 7200000, guid: 9bf3470d80cbca840b3b4a80498f57ac, type: 3}
 --- !u!1 &1911340452
 GameObject:

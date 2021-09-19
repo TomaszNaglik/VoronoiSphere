@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class SVoronoiMapGPU : MonoBehaviour
@@ -10,7 +11,15 @@ public class SVoronoiMapGPU : MonoBehaviour
     public int NumberOfCells;
     public bool ShowPoints;
     public bool ShowTriangles;
+    public bool ShowEdges;
     public bool ShowCells;
+    
+    
+    [Range(0.0f, 0.03f)]
+    public float Jitter;
+    public int RandomSeed;
+    [Range(1, 100)]
+    public int Scale;
 
     private SDelanuator sDelanuator;
     private Vector3[] spherePoints;
@@ -23,6 +32,10 @@ public class SVoronoiMapGPU : MonoBehaviour
 
     //ComputeShaders
     public ComputeShader CS_Edges;
+
+    //General
+    
+
 
 
     // Start is called before the first frame update
@@ -38,14 +51,14 @@ public class SVoronoiMapGPU : MonoBehaviour
     {
         if (UpdateFrame)
         {
-            NumberOfCells++;
+            //NumberOfCells++;
             InitializeMap();
         }
     }
 
     private void InitializeMap()
     {
-        Clear();
+        Reset();
         GenerateTerrainChunks();
         GeneratePoints();
         GenerateDelaunayTriangulation();
@@ -59,7 +72,7 @@ public class SVoronoiMapGPU : MonoBehaviour
 
     }
 
-    private void Clear()
+    private void Reset()
     {
         sDelanuator = null;
         spherePoints = null;
@@ -68,6 +81,9 @@ public class SVoronoiMapGPU : MonoBehaviour
         edges = null;
         wedges = null;
         verticies = null;
+
+        UnityEngine.Random.InitState(RandomSeed);
+
     }
 
     private void GenerateTerrainChunks()
@@ -83,14 +99,25 @@ public class SVoronoiMapGPU : MonoBehaviour
         double l = 0;
         double z = 1 - dz / 2f;
 
+        
+
         for (int k = 0; k < NumberOfCells; k++)
         {
             double r = Math.Sqrt(1 - z * z);
             double x = Math.Cos(l) * r;
             double y = Math.Sin(l) * r;
 
-            spherePoints[k] = new Vector3((float)x, (float)y, (float)z);
-           
+            
+            Vector3 point = new Vector3((float)x, (float)y, (float)z);
+            Vector3 noise = UnityEngine.Random.onUnitSphere*(Jitter);
+            point = new Vector3(point.x + noise.x, point.y + noise.y, point.z + noise.z);
+            
+            point = point.normalized;
+            point *= Scale;
+            //Debug.LogFormat("Point: {0} Scaled: {1}", point, point2);
+            spherePoints[k] = point;
+
+
             z = z - dz;
             l = l + dl;
         }
@@ -98,7 +125,7 @@ public class SVoronoiMapGPU : MonoBehaviour
 
     private void GenerateDelaunayTriangulation()
     {
-        sDelanuator = new SDelanuator(spherePoints);
+        sDelanuator = new SDelanuator(spherePoints, Scale);
         //Utils.LogArray("Triangles: ",sDelanuator.Triangles);
         //Utils.LogArray("HalfEdges: ",sDelanuator.HalfEdges);
         //Utils.LogArray("Points: ", sDelanuator.Points);
@@ -119,6 +146,9 @@ public class SVoronoiMapGPU : MonoBehaviour
             Cell cell = new Cell();
             cell.id = i;
             cell.position = sDelanuator.Points[i];
+            cell.edgesCount = 0;
+            cell.edges = new int[10];
+            cells[i] = cell;
             
         }
     }
@@ -132,11 +162,13 @@ public class SVoronoiMapGPU : MonoBehaviour
         Triangles.SetData(sDelanuator.Triangles);
         Halfedges.SetData(sDelanuator.HalfEdges);
         Points.SetData(sDelanuator.Points);
+
         
         CS_Edges.SetBuffer(0, "Edges_Buffer", edges_Buffer);
         CS_Edges.SetBuffer(0, "Triangles", Triangles);
         CS_Edges.SetBuffer(0, "Halfedges", Halfedges);
         CS_Edges.SetBuffer(0, "Points", Points);
+        CS_Edges.SetInt("Scale", Scale);
 
         CS_Edges.Dispatch(0, edges.Length / 10, 1, 1);
 
@@ -150,7 +182,11 @@ public class SVoronoiMapGPU : MonoBehaviour
 
         foreach (Edge e in edges)
         {
-
+            if (e.active==1)
+            {
+                cells[e.cell_1].AddEdge(e);
+                cells[e.cell_2].AddEdge(e);
+            }
         }
     }
 
@@ -182,14 +218,19 @@ public class SVoronoiMapGPU : MonoBehaviour
 
         if (ShowPoints)
         {
-            for (int i = 0; i < sDelanuator.Points.Length; i++)
+            Vector3 position;
+            for (int i = 0; i < sDelanuator.Points.Length-1; i++)
             {
-                Vector3 position = sDelanuator.Points[i];
+                position = sDelanuator.Points[i];
                 Gizmos.color = Color.yellow;
                 //if (position.z < 0) Gizmos.color = Color.red;
-                Gizmos.DrawSphere(position, 0.05f);
+                Gizmos.DrawSphere(position, 0.015f);
                 //Gizmos.DrawLine(position, lonePoint);
             }
+            position = sDelanuator.Points[sDelanuator.Points.Length - 1];
+            Gizmos.color = Color.cyan;
+            //if (position.z < 0) Gizmos.color = Color.red;
+            Gizmos.DrawSphere(position, 0.015f);
         }
 
         if (ShowTriangles)
@@ -202,23 +243,44 @@ public class SVoronoiMapGPU : MonoBehaviour
             }
         }
 
-        if (ShowCells)
+        if (ShowEdges)
         {
             for (int i = 0; i < edges.Length; i++)
             {
-                //Gizmos.color = new Color(1, 0, 0, 1);
-                //Gizmos.DrawSphere(edges[i].A, 0.02f);
-
+                
                 Gizmos.color = new Color(0, 1, 0, 1);
-                //Gizmos.DrawSphere(edges[i].B, 0.02f);
-                Gizmos.DrawLine(edges[i].A, edges[i].B);
+               
+                if (edges[i].active == 1) 
+                {
+                    Gizmos.DrawLine(edges[i].A, edges[i].B);
+                }
             }
+            
+        }
+
+        if (ShowCells)
+        {
+            
+            for (int i = 0; i < cells.Length; i++)
+            {
+
+                for (int j = 0; j < cells[i].edgesCount; j++)
+                {
+                    Gizmos.color = new Color(0, 0, 1, 1);
+                    //Gizmos.DrawLine(edges[cells[i].edges[j]].A, edges[cells[i].edges[j]].B);
+                    Gizmos.DrawLine(cells[i].position, edges[cells[i].edges[j]].B);
+                    Gizmos.DrawLine(cells[i].position, edges[cells[i].edges[j]].A);
+                }
+                
+            }
+
+           
         }
         
 
         
 
-
+        
 
     }
 }
