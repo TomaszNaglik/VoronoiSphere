@@ -65,6 +65,7 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\CameraController.cs" />
     <Compile Include="Assets\Scripts\Voronoi\Noise.cs" />
+    <Compile Include="Assets\Scripts\Voronoi\PlanetChunkGPU.cs" />
     <Compile Include="Assets\Scripts\Voronoi\SDelanuator.cs" />
     <Compile Include="Assets\Scripts\Voronoi\SVoronoiCell.cs" />
     <Compile Include="Assets\Scripts\Voronoi\SVoronoiEdge.cs" />

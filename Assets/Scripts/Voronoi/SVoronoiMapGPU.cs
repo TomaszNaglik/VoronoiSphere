@@ -23,7 +23,11 @@ public class SVoronoiMapGPU : MonoBehaviour
 
     private SDelanuator sDelanuator;
     private Vector3[] spherePoints;
-    
+    private PlanetChunkGPU[] chunks;
+    private int NumChunksWidth = 20;
+    private int NumChunksHeight = 20;
+    public PlanetChunkGPU PlanetChunkPrefab;
+
     //Structs
     private Cell[] cells;
     private Edge[] edges;
@@ -41,7 +45,7 @@ public class SVoronoiMapGPU : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        GenerateTerrainChunks();
         InitializeMap();
     }
 
@@ -59,7 +63,7 @@ public class SVoronoiMapGPU : MonoBehaviour
     private void InitializeMap()
     {
         Reset();
-        GenerateTerrainChunks();
+        
         GeneratePoints();
         GenerateDelaunayTriangulation();
         SetData();
@@ -67,7 +71,7 @@ public class SVoronoiMapGPU : MonoBehaviour
         ComputeEdges();
         ComputeWedges();
         ComputeVertices();
-        AssignCellsToChunks();
+        AssignEdgesToChunks();
         TriangulateChunks();
 
     }
@@ -82,13 +86,25 @@ public class SVoronoiMapGPU : MonoBehaviour
         wedges = null;
         verticies = null;
 
+        foreach(PlanetChunkGPU chunk in chunks)
+        {
+            chunk.Reset();
+        }
+
         UnityEngine.Random.InitState(RandomSeed);
 
     }
 
     private void GenerateTerrainChunks()
     {
-       // throw new NotImplementedException();
+        chunks = new PlanetChunkGPU[NumChunksWidth * NumChunksHeight];
+        for (int i = 0; i < chunks.Length; i++)
+        {
+            PlanetChunkGPU chunk = chunks[i] = Instantiate(PlanetChunkPrefab);
+            chunk.transform.SetParent(transform);
+
+        }
+        
     }
 
     private void GeneratePoints()
@@ -193,21 +209,60 @@ public class SVoronoiMapGPU : MonoBehaviour
     private void ComputeWedges()
     {
         //throw new NotImplementedException();
+        /*
+         for each wedge, create a vertex, see if that vertex exists.
+         if it does not, add it to the vertices and get an id
+         if it does, get an id
+
+        and then create the vetices array and triangles array
+         
+         */
     }
 
     private void ComputeVertices()
     {
-       // throw new NotImplementedException();
+        verticies = new Vertex[edges.Length];
     }
 
     private void AssignCellsToChunks()
     {
-       // throw new NotImplementedException();
+        /*for (int i = 0; i < cells.Length; i++)
+        {
+            Vector2 polar = VParams.CartesianToPolar(cells[i].position);
+            float a = VParams.Map(polar.x, (float)-Math.PI / 2, (float)Math.PI / 2, 0, 1);
+            float b = VParams.Map(polar.y, (float)-Math.PI, (float)Math.PI, 0, 1);
+
+            int X = (int)(b * NumChunksWidth);
+            int Y = (int)(a * NumChunksHeight);
+
+            mapChunks[Y * NumChunksWidth + X].Cells.Add(cells[i]);
+            cells[i].Chunk = mapChunks[Y * NumChunksWidth + X];
+        }*/
+    }
+
+    private void AssignEdgesToChunks()
+    {
+        for (int i = 0; i < edges.Length; i++)
+        {
+            Vector3 edgePosition = (edges[i].A + edges[i].B) / 2;
+            Vector2 polar = VParams.CartesianToPolar(edgePosition);
+            float a = VParams.Map(polar.x, (float)-Math.PI / 2, (float)Math.PI / 2, 0, 1);
+            float b = VParams.Map(polar.y, (float)-Math.PI, (float)Math.PI, 0, 1);
+
+            int X = (int)(b * NumChunksWidth);
+            int Y = (int)(a * NumChunksHeight);
+           
+            chunks[Y * NumChunksWidth + X].edges.Add(edges[i]);
+            //edges[i].Chunk = mapChunks[Y * NumChunksWidth + X];
+        }
     }
 
     private void TriangulateChunks()
     {
-        //throw new NotImplementedException();
+        foreach(PlanetChunkGPU chunk in chunks)
+        {
+            chunk.Triangulate();
+        }
     }
 
 
