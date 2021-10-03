@@ -412,18 +412,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 86f93e43c5d8c3445b4e3bbe5e157d89, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  UpdateFrame: 0
-  NumberOfCells: 60000
+  UpdateFrame: 1
+  NumberOfCells: 1000
   ShowPoints: 0
   ShowTriangles: 0
-  ShowEdges: 0
+  ShowEdges: 1
   ShowCells: 0
-  Jitter: 0
+  Jitter: 0.01655
   RandomSeed: 0
-  Scale: 1
+  Scale: 64
   PlanetChunkPrefab: {fileID: 8872347755199179212, guid: 0e8f2eb5dc49a984ba821cc2400e4b67,
     type: 3}
   CS_Edges: {fileID: 7200000, guid: 9bf3470d80cbca840b3b4a80498f57ac, type: 3}
+  CS_Mesh: {fileID: 7200000, guid: 54ed2ef8259017246901b79ef2dd8f71, type: 3}
 --- !u!1 &1911340452
 GameObject:
   m_ObjectHideFlags: 0

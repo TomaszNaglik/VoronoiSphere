@@ -27,6 +27,7 @@ public class PlanetChunkGPU : MonoBehaviour
         
     }
 
+
     
     void Update()
     {
@@ -84,5 +85,19 @@ public class PlanetChunkGPU : MonoBehaviour
         }
         
 
+    }
+
+    internal void SetMeshData(Vector3[] vertices, int[] indices)
+    {
+        mesh.vertices = vertices;
+        mesh.triangles = indices;
+        mesh.RecalculateBounds();
+        mesh.RecalculateNormals();
+    }
+
+    internal void PrintData()
+    {
+        Utils.LogArray("Chunk: " + index + " Vertices: ", mesh.vertices);
+        Utils.LogArray("Chunk: " + index + " Indices: ", mesh.triangles);
     }
 }

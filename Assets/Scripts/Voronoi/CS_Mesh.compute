@@ -1,0 +1,67 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+struct Edge
+{
+
+    uint id;
+    uint active;
+    float3 A;
+    float3 B;
+    float3 C1;
+    float3 C2;
+
+    uint cell_1;
+    uint cell_2;
+
+    uint chunkID;
+};
+
+
+StructuredBuffer <Edge> Edges;
+RWStructuredBuffer <float3> TriangleVertices;
+RWStructuredBuffer <int> TriangleIndices;
+RWStructuredBuffer <int> ChunkIndices;
+
+
+int TrianglesPerEdge;
+int VerticesPerBigTriangle;
+int ChunkStride;
+int EdgeStride;
+
+
+
+
+[numthreads(10,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+
+    InterlockedAdd(ChunkIndices[Edges[id.x].chunkID], 1);
+    /*get edge from edges[id]
+    calculate which chunk it is
+    add vertices and indices to that chunk triangle and index buffers
+    increment chunkindex
+    */
+    int i = id.x;
+    Edge edge = Edges[i];
+    int ChunkID = edge.chunkID;
+    
+    
+    TriangleVertices[ChunkStride * ChunkID + EdgeStride * ChunkIndices[ChunkID] + 0] = edge.C2;
+    TriangleVertices[ChunkStride * ChunkID + EdgeStride * ChunkIndices[ChunkID] + 1] = edge.A;
+    TriangleVertices[ChunkStride * ChunkID + EdgeStride * ChunkIndices[ChunkID] + 2] = edge.B;
+    TriangleVertices[ChunkStride * ChunkID + EdgeStride * ChunkIndices[ChunkID] + 3] = edge.C1;
+    TriangleVertices[ChunkStride * ChunkID + EdgeStride * ChunkIndices[ChunkID] + 4] = edge.B;
+    TriangleVertices[ChunkStride * ChunkID + EdgeStride * ChunkIndices[ChunkID] + 5] = edge.A;
+
+    TriangleIndices[EdgeStride * ChunkIndices[ChunkID] + 0] = EdgeStride * ChunkIndices[ChunkID] + 0;
+    TriangleIndices[EdgeStride * ChunkIndices[ChunkID] + 1] = EdgeStride * ChunkIndices[ChunkID] + 1;
+    TriangleIndices[EdgeStride * ChunkIndices[ChunkID] + 2] = EdgeStride * ChunkIndices[ChunkID] + 2;
+    TriangleIndices[EdgeStride * ChunkIndices[ChunkID] + 3] = EdgeStride * ChunkIndices[ChunkID] + 3;
+    TriangleIndices[EdgeStride * ChunkIndices[ChunkID] + 4] = EdgeStride * ChunkIndices[ChunkID] + 4;
+    TriangleIndices[EdgeStride * ChunkIndices[ChunkID] + 5] = EdgeStride * ChunkIndices[ChunkID] + 5;
+
+    
+    
+
+}

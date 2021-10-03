@@ -76,6 +76,7 @@
     <Compile Include="Assets\Scripts\Voronoi\VParams.cs" />
     <Compile Include="Assets\Scripts\Voronoi\VoronoiMesh.cs" />
     <None Include="Assets\Materials\Ocean_Shader_Unlit.shader" />
+    <None Include="Assets\Scripts\Voronoi\CS_Mesh.compute" />
     <None Include="Assets\PlanetShader\Shader\Planet.shader" />
     <None Include="Assets\Scripts\Voronoi\CS_Edges.compute" />
     <None Include="Assets\PlanetShader\Shader\MapComputeShader.compute" />

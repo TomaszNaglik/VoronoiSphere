@@ -41,10 +41,12 @@ public struct Edge
     public int cell_1;
     public int cell_2;
 
+    public int chunkID;
+
     
     public override string ToString()
     {
-        return "Edge:_" + id + "---" + cell_1 + "<>" + cell_2 + "---" + A.ToString() + "<>" + B.ToString() ;
+        return "Edge:_" + id + "---" + cell_1 + "<>" + cell_2 + "---" + A.ToString() + "<>" + B.ToString() + "Chunk: " + chunkID ;
     }
 }
 
@@ -66,10 +68,15 @@ public struct Vertex
 
 }
 
+public struct MeshData
+{
+
+}
+
 public static class SizeOf
 {
     public static int Cell = sizeof(float) * 3 + sizeof(int) * 1;
-    public static int Edge = sizeof(float) * 12 + sizeof(int) * 4;
+    public static int Edge = sizeof(float) * 12 + sizeof(int) * 5;
     public static int Wedge = +sizeof(int) * 3 + sizeof(int) * 20 + sizeof(int) * 24*3;
     public static int Vertex = sizeof(float) * 6 + sizeof(int) * 1;
 }

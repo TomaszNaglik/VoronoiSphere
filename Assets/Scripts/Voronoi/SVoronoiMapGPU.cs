@@ -34,11 +34,18 @@ public class SVoronoiMapGPU : MonoBehaviour
     private Wedge[] wedges;
     private Vertex[] verticies;
 
+
+    private int trianglesPerEdge = 2;
+    private int[] TriangleIndices;
+    private Vector3[] TriangleVertices;
+    private int[] EdgeInMeshCounters;
+
     //ComputeShaders
     public ComputeShader CS_Edges;
+    public ComputeShader CS_Mesh;
 
     //General
-    
+
 
 
 
@@ -69,7 +76,7 @@ public class SVoronoiMapGPU : MonoBehaviour
         SetData();
         GenerateCells();
         ComputeEdges();
-        ComputeWedges();
+        //ComputeMeshData();
         ComputeVertices();
         AssignEdgesToChunks();
         TriangulateChunks();
@@ -85,6 +92,10 @@ public class SVoronoiMapGPU : MonoBehaviour
         edges = null;
         wedges = null;
         verticies = null;
+
+        TriangleIndices = null;
+        EdgeInMeshCounters = null;
+        TriangleVertices = null;
 
         foreach(PlanetChunkGPU chunk in chunks)
         {
@@ -129,7 +140,7 @@ public class SVoronoiMapGPU : MonoBehaviour
             point = new Vector3(point.x + noise.x, point.y + noise.y, point.z + noise.z);
             
             point = point.normalized;
-            point *= Scale;
+            //point *= Scale;
             //Debug.LogFormat("Point: {0} Scaled: {1}", point, point2);
             spherePoints[k] = point;
 
@@ -141,7 +152,7 @@ public class SVoronoiMapGPU : MonoBehaviour
 
     private void GenerateDelaunayTriangulation()
     {
-        sDelanuator = new SDelanuator(spherePoints, Scale);
+        sDelanuator = new SDelanuator(spherePoints);
         //Utils.LogArray("Triangles: ",sDelanuator.Triangles);
         //Utils.LogArray("HalfEdges: ",sDelanuator.HalfEdges);
         //Utils.LogArray("Points: ", sDelanuator.Points);
@@ -153,6 +164,11 @@ public class SVoronoiMapGPU : MonoBehaviour
         edges = new Edge[sDelanuator.Triangles.Length];
         wedges = new Wedge[edges.Length];
         verticies = new Vertex[wedges.Length * 3];
+
+
+        TriangleIndices = new int[trianglesPerEdge * 3 * edges.Length];
+        EdgeInMeshCounters = new int[chunks.Length];
+        TriangleVertices = new Vector3[trianglesPerEdge * 3 * edges.Length];
     }
 
     private void GenerateCells()
@@ -185,6 +201,8 @@ public class SVoronoiMapGPU : MonoBehaviour
         CS_Edges.SetBuffer(0, "Halfedges", Halfedges);
         CS_Edges.SetBuffer(0, "Points", Points);
         CS_Edges.SetInt("Scale", Scale);
+        CS_Edges.SetInt("NumChunksWidth", NumChunksWidth);
+        CS_Edges.SetInt("NumChunksHeight", NumChunksHeight);
 
         CS_Edges.Dispatch(0, edges.Length / 10, 1, 1);
 
@@ -206,17 +224,77 @@ public class SVoronoiMapGPU : MonoBehaviour
         }
     }
 
-    private void ComputeWedges()
+    private void ComputeMeshData()
     {
-        //throw new NotImplementedException();
         /*
-         for each wedge, create a vertex, see if that vertex exists.
-         if it does not, add it to the vertices and get an id
-         if it does, get an id
-
-        and then create the vetices array and triangles array
-         
+         * Create 2 2D buffers for vertices and indices
+         * pass in Edges
+         * pass in Mesh data counters
+         * 
+         * in the shader, go through each edge
+         * - identify which chunk it is
+         * - add data to vertices and indices in the current count
+         * - atomic increment of count of that chunk
+         * 
+         * outside of shader
+         * get vertex and index data per chunk
+         * 
          */
+        int maxNumEdgesPerChunk = 300;
+        int trianglesPerEdge = 2;
+        int verticesPerBigTriangle = 3;
+        int edgeStride = trianglesPerEdge * verticesPerBigTriangle;
+        int chunkStride = maxNumEdgesPerChunk * edgeStride;
+        int numChunks = chunks.Length;
+        int BufferSize = chunkStride * numChunks;
+        
+
+
+        ComputeBuffer Edges = new ComputeBuffer(edges.Length, SizeOf.Edge);
+        ComputeBuffer Vertices = new ComputeBuffer(BufferSize, sizeof(float)*3);
+        ComputeBuffer Indices = new ComputeBuffer(BufferSize, sizeof(int));
+        ComputeBuffer ChunkCounters = new ComputeBuffer(chunks.Length, sizeof(int));
+        Edges.SetData(edges);
+        Vertices.SetData(TriangleVertices);
+        Indices.SetData(TriangleIndices);
+        ChunkCounters.SetData(EdgeInMeshCounters);
+
+
+        CS_Mesh.SetBuffer(0, "Edges", Edges);
+        CS_Mesh.SetBuffer(0, "TriangleVertices", Vertices);
+        CS_Mesh.SetBuffer(0, "TriangleIndices", Indices);
+        CS_Mesh.SetBuffer(0, "ChunkIndices", ChunkCounters);
+
+        
+        CS_Mesh.SetInt("TrianglesPerEdge", trianglesPerEdge);
+        CS_Mesh.SetInt("VerticesPerBigTriangle", verticesPerBigTriangle);
+        CS_Mesh.SetInt("ChunkStride", chunkStride);
+        CS_Mesh.SetInt("EdgeStride", edgeStride);
+        
+        //Utils.LogArray("Edge counters: ", EdgeInMeshCounters);
+        
+        CS_Mesh.Dispatch(0, edges.Length / 10, 1, 1);
+
+        ChunkCounters.GetData(EdgeInMeshCounters);
+        ChunkCounters.Dispose();
+
+        for (int i = 0; i < chunks.Length; i++)
+        {
+            Vector3[] vertices = new Vector3[EdgeInMeshCounters[i]* trianglesPerEdge * verticesPerBigTriangle];
+            int[] indices = new int[EdgeInMeshCounters[i] * trianglesPerEdge * verticesPerBigTriangle];
+            Vertices.GetData(vertices, 0, i * chunkStride , EdgeInMeshCounters[i]);
+            Indices.GetData(indices, 0, i * chunkStride, EdgeInMeshCounters[i]);
+            chunks[i].SetMeshData(vertices, indices);
+        }
+        
+        Edges.Dispose();
+        Vertices.Dispose();
+        Indices.Dispose();
+
+        //Debug.LogFormat("Edges count: {0}",edges.Length);
+        //chunks[0].PrintData();
+        //Debug.Log(edges.Length);
+        Utils.LogArray("Edge counters: ", EdgeInMeshCounters);
     }
 
     private void ComputeVertices()
@@ -242,6 +320,7 @@ public class SVoronoiMapGPU : MonoBehaviour
 
     private void AssignEdgesToChunks()
     {
+        
         for (int i = 0; i < edges.Length; i++)
         {
             Vector3 edgePosition = (edges[i].A + edges[i].B) / 2;
@@ -253,16 +332,40 @@ public class SVoronoiMapGPU : MonoBehaviour
             int Y = (int)(a * NumChunksHeight);
            
             chunks[Y * NumChunksWidth + X].edges.Add(edges[i]);
+            edges[i].chunkID = Y * NumChunksWidth + X;
+            //if(maxEdges < chunks[Y * NumChunksWidth + X].edges.Count) maxEdges = chunks[Y * NumChunksWidth + X].edges.Count;
             //edges[i].Chunk = mapChunks[Y * NumChunksWidth + X];
         }
-    }
+        //Debug.LogFormat("Max number of edges: {0}, Max number of vertices per chunk: {1}", maxEdges, maxEdges * 6);
+        
+        int maxEdges = 0;
 
+        for (int i = 0; i < edges.Length; i++)
+        {
+            if(edges[i].chunkID < 0) Debug.Log(edges[i]);
+        }
+        for (int i = 0; i < edges.Length; i++)
+        {
+            //Debug.LogFormat("Edges count: {0}, current edge index: {1}, chunkID: {2} out of {3} chunks.", edges.Length, i, edges[i].chunkID, chunks.Length);
+            chunks[edges[i].chunkID].edges.Add(edges[i]);
+            if (maxEdges < chunks[edges[i].chunkID].edges.Count) maxEdges = chunks[edges[i].chunkID].edges.Count;
+        }
+        Debug.LogFormat("Max number of edges: {0}, Max number of vertices per chunk: {1}", maxEdges, maxEdges * 6);
+
+        int[] edgeCount = new int[chunks.Length];
+        for (int i = 0; i < edgeCount.Length; i++)
+        {
+            edgeCount[i] = chunks[i].edges.Count;
+        }
+        Utils.LogArray("Edges in Chunks: ", edgeCount);
+    }
     private void TriangulateChunks()
     {
         foreach(PlanetChunkGPU chunk in chunks)
         {
             chunk.Triangulate();
         }
+
     }
 
 

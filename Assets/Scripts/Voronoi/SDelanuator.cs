@@ -13,16 +13,16 @@ public class SDelanuator
     Vector3[] points;
     private Delaunator delaunator;
     public List<Vector3> edgePoints;
-    private int Scale;
+    
     //private static float Planet_Radius = 10;
 
-    public SDelanuator(Vector3[] _points, int _Scale)
+    public SDelanuator(Vector3[] _points)
     {
-        delaunator = new Delaunator(ProjectStereographically(_points, _Scale));
+        delaunator = new Delaunator(ProjectStereographically(_points));
         Triangles = delaunator.Triangles;
         HalfEdges = delaunator.Halfedges;
         Points = _points;
-        Scale = _Scale;
+        
         Augment();
         
     }
@@ -99,7 +99,7 @@ public class SDelanuator
             lonePoint += edgePoints[i];
         }
         lonePoint /= edgePoints.Count;
-        lonePoint = lonePoint.normalized * Scale;
+        lonePoint = lonePoint.normalized;
         List<Vector3> controlPoints = new List<Vector3>(edgePoints);
         List<int> controlIndices = new List<int>(edgeIndices);
 
@@ -186,8 +186,9 @@ public class SDelanuator
         return (e % 3 == 2) ? e - 2 : e + 1; 
     }
 
-    private IPoint[] ProjectStereographically(Vector3[] spherePoints, int size)
+    private IPoint[] ProjectStereographically(Vector3[] spherePoints)
     {
+        int size = 1;
         IPoint[] projected = new IPoint[spherePoints.Length];
         for (int i = 0; i < spherePoints.Length; i++)
         {
