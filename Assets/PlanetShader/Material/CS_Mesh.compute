@@ -1,0 +1,71 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+struct Edge
+{
+
+    uint id;
+    uint active;
+    float3 A;
+    float3 B;
+    float3 C1;
+    float3 C2;
+
+    uint cell_1;
+    uint cell_2;
+
+    uint chunkID;
+};
+
+
+StructuredBuffer <Edge> Edges;
+RWStructuredBuffer <float3> TriangleVertices;
+RWStructuredBuffer <int> TriangleIndices;
+RWStructuredBuffer <int> ChunkIndices;
+
+
+
+int EdgeStride;
+
+
+
+
+[numthreads(100,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+
+    
+    /*get edge from edges[id]
+    calculate which chunk it is
+    add vertices and indices to that chunk triangle and index buffers
+    increment chunkindex
+    */
+    int i = id.x;
+    Edge edge = Edges[i];
+    int ChunkID = edge.chunkID;
+    
+    
+    TriangleVertices[i * EdgeStride +  0] = edge.C2;
+    TriangleVertices[i * EdgeStride + 1] = edge.A;
+    TriangleVertices[i * EdgeStride + 2] = edge.B;
+    TriangleVertices[i * EdgeStride + 3] = edge.C1;
+    TriangleVertices[i * EdgeStride + 4] = edge.B;
+    TriangleVertices[i * EdgeStride + 5] = edge.A;
+
+   /* int visitedEdges = 0;
+    for (int j = 0; j < ChunkID; j++)
+    {
+        visitedEdges += ChunkIndices[ChunkID]*EdgeStride;
+    }
+
+    TriangleIndices[i * EdgeStride + 0] = EdgeStride * i + 0 - visitedEdges;
+    TriangleIndices[i * EdgeStride + 1] = EdgeStride * i + 1 - visitedEdges;
+    TriangleIndices[i * EdgeStride + 2] = EdgeStride * i + 2 - visitedEdges;
+    TriangleIndices[i * EdgeStride + 3] = EdgeStride * i + 3 - visitedEdges;
+    TriangleIndices[i * EdgeStride + 4] = EdgeStride * i + 4 - visitedEdges;
+    TriangleIndices[i * EdgeStride + 5] = EdgeStride * i + 5 - visitedEdges;
+    */
+    
+    
+
+}

@@ -123,6 +123,7 @@ public class VParams
         Vector2 result;
         result.y = Mathf.Atan2(p.x, p.z);
         result.x = Mathf.Atan2(-p.y, xzLen);
+        
         return result;
     }
 

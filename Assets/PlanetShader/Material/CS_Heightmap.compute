@@ -1,0 +1,107 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+
+float distanceToLine(float2 a, float2 b, float2 p, float radius, float smooth) {
+    float2 v = a, w = b;
+
+    float l2 = pow(distance(w, v), 2.);
+    if (l2 == 0.0) return distance(p, v);
+
+    float t = clamp(dot(p - v, w - v) / l2, 0., 1.);
+    float2 j = v + t * (w - v);
+
+    float d = distance(p, j);
+    d = smoothstep(radius, radius + smooth, d);
+    return d;
+}
+
+float distanceToCircle(float2 c, float2 p, float r, float smooth) {
+    float dist = distance(p, c);
+    dist = smoothstep(r, r +smooth, dist);
+
+    return dist;
+}
+
+float2 SphereToProjection(float3 p) {
+
+}
+
+float3 ProjectionToSphere(float2 p) {
+
+}
+
+
+//#include "noiseSimplex.cginc"
+RWTexture2D<float> output_texture;
+#pragma kernel HeightMapCalculation
+#include "noiseSimplex.cginc"
+float frequency;
+float lacunarity;
+float persistance;
+int octaves;
+float scale;
+float threshold;
+float2 MapResolution;
+float xOffset;
+float yOffset;
+float waterLevel;
+[numthreads(8,8,1)]
+
+
+
+void HeightMapCalculation(uint3 id : SV_DispatchThreadID)
+{
+    float2 uv = (id.xy) / MapResolution.y;
+    
+
+    //map detail
+    
+    if (scale <= 0) {
+        scale = 0.001;
+    }
+   
+    
+    float noiseHeight = 0;
+    float amplitude = 1;
+    float2 dimensions = float2(xOffset, yOffset);;
+    float2 offset = float2(xOffset, yOffset);
+    float MinNoiseHeight = -10000;
+    float MaxNoiseHeight = 10000;
+
+    for (int i = 0; i < 20; i++) {
+        float2 nSample = (id.xy +offset  - dimensions)  / scale * frequency;
+        float noiseValue = snoise(nSample)*2.0 + threshold;
+        
+        noiseHeight += noiseValue * noiseValue * amplitude;
+        amplitude *= persistance ;
+        frequency *= lacunarity;
+    }
+
+    noiseHeight = noiseHeight / 8.0;
+    
+
+    // border mask
+    
+    float2 c1 = float2(0.0, 0.0);
+    float2 c2 = float2(2.0, 0.0);
+    float2 c3 = float2(2.0, 1.0);
+    float2 c4 = float2(0.0, 1.0);
+    float width1 = 0.010;
+    
+    float dLine1 = distanceToLine(c1, c2, uv, width1, xOffset);
+    float dLine2 = distanceToLine(c2, c3, uv, width1, xOffset);
+    float dLine3 = distanceToLine(c3, c4, uv, width1, xOffset);
+    float dLine4 = distanceToLine(c4, c1, uv, width1, xOffset);
+    
+    float output;
+    output = min(dLine1, dLine2);
+    output = min(output, dLine3);
+    output = min(output, dLine4);
+    float borderNoise = noiseHeight * output * (1 - snoise(uv) / 10);
+    if (borderNoise < waterLevel) {
+        noiseHeight = 0.0;
+    }
+    output = noiseHeight * output * (1-snoise(uv)/10);
+    output_texture[id.xy] = output;
+}
+
+

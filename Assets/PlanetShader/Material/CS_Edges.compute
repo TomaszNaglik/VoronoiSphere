@@ -1,0 +1,139 @@
+﻿// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+struct Edge
+{
+    
+    uint id;
+    uint active;
+    float3 A;
+    float3 B;
+    float3 C1;
+    float3 C2;
+
+    uint cell_1;
+    uint cell_2;
+
+    uint chunkID;
+};
+
+
+RWStructuredBuffer <Edge> Edges_Buffer;
+StructuredBuffer <int> Triangles;
+StructuredBuffer <int> Halfedges;
+StructuredBuffer <float3> Points;
+int Scale;
+int NumChunksWidth;
+int NumChunksHeight;
+
+static const float PI = 3.14159265f;
+
+
+
+float Map(float input, float input_start, float input_end, float output_start, float output_end)
+{
+    return output_start + ((output_end - output_start) / (input_end - input_start)) * (input - input_start);
+
+}
+
+float2 CartesianToPolar(float3 p)
+{
+    float xzLen = length(p.xz);
+    float2 result;
+    result.y = atan2(p.x, p.z);
+    result.x = atan2(-p.y, xzLen);
+
+    return result;
+}
+int GetChunkID(Edge edge)
+{
+    // behaves differently than implemenation in c#
+    float3 edgePosition = (edge.A + edge.B) / 2.0;
+    float2 polar = CartesianToPolar(edgePosition);
+    float a = Map(polar.x, -PI / 2.0, PI / 2.0, 0, 1.0);
+    float b = Map(polar.y, -PI / 2.0, PI, 0, 1.0);
+
+    int X = (int)(b * NumChunksWidth);
+    int Y = (int)(a * NumChunksHeight);
+
+    int ID = Y * NumChunksWidth + X;
+    //if (ID < 0) ID = ID * -1; //dirty fix. When A and B are very close or the same point, ID somehow becomes negative);
+    return ID;
+}
+
+float3 GetTriangleCenter(float3 a, float3 b, float3 c) 
+{
+    float3 center = float3((a.x+b.x+c.x)/3, (a.y + b.y + c.y) / 3, (a.z + b.z + c.z) / 3);
+    return normalize(center);
+}
+
+[numthreads(100,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    int i = id.x;
+    
+    Edge edge = Edges_Buffer[i];
+
+    edge.cell_1 = Triangles[i];
+    edge.cell_2 = Triangles[Halfedges[i]];
+    edge.C1 = Points[edge.cell_1] * Scale;
+    edge.C2 = Points[edge.cell_2] * Scale;
+    int x = edge.cell_1 > edge.cell_2 ? edge.cell_1 : edge.cell_2;
+    int y = edge.cell_1 < edge.cell_2 ? edge.cell_1 : edge.cell_2;
+    edge.id = i;
+    edge.active = i < Halfedges[i] ? 1 : 0;
+    int a = 0;
+    int b = 0;
+    int c = 0;
+    //find first triangle
+    uint cell_1_Triangle_Index = i % 3;
+    
+    [branch] if (cell_1_Triangle_Index == 0)
+    {
+        a = i;
+        b = i + 1;
+        c = i + 2;
+    }
+    [branch] if (cell_1_Triangle_Index == 1)
+    {
+        a = i - 1;
+        b = i;
+        c = i + 1;
+    }
+    [branch] if (cell_1_Triangle_Index == 2)
+    {
+        a = i - 2;
+        b = i - 1;
+        c = i;
+    }
+
+    edge.A = GetTriangleCenter(Points[Triangles[a]], Points[Triangles[b]], Points[Triangles[c]]) * Scale;
+
+    //find second triangle
+    uint cell_2_Triangle_Index = Halfedges[i] % 3;
+    [branch] if (cell_2_Triangle_Index == 0)
+    {
+        a = Halfedges[i];
+        b = Halfedges[i] + 1;
+        c = Halfedges[i] + 2;
+    }
+    [branch] if (cell_2_Triangle_Index == 1)
+    {
+        a = Halfedges[i] - 1;
+        b = Halfedges[i];
+        c = Halfedges[i] + 1;
+    }
+    [branch] if (cell_2_Triangle_Index == 2)
+    {
+        a = Halfedges[i] - 2;
+        b = Halfedges[i] - 1;
+        c = Halfedges[i];
+    }
+
+    edge.B = GetTriangleCenter(Points[Triangles[a]], Points[Triangles[b]], Points[Triangles[c]]) * Scale;
+    
+    edge.chunkID = GetChunkID(edge);
+
+
+    Edges_Buffer[id.x] = edge;
+}
