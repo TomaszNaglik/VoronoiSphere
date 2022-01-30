@@ -1,5 +1,7 @@
 ﻿// Each #kernel tells which function to compile; you can have many kernels
 
+#define PI  3.1415926535897932384626433832795028841971693993751058209749
+
 float distanceToLine(float2 a, float2 b, float2 p, float radius, float smooth) {
     float2 v = a, w = b;
 
@@ -20,14 +22,57 @@ float distanceToCircle(float2 c, float2 p, float r, float smooth) {
 
     return dist;
 }
-
-float2 SphereToProjection(float3 p) {
-
+float map(float value, float istart, float istop, float ostart, float ostop) {
+    return ostart + (ostop - ostart) * ((value - istart) / (istop - istart));
 }
 
-float3 ProjectionToSphere(float2 p) {
+float2 ToPlane(float3 p) {
+    float radius = 1.0;
+    float2 result;
+    
 
+   
+    float latitude = acos(p.z / radius);
+    float longitude = atan2(-p.y, p.x);
+
+    
+    result.x = map(longitude, -PI, PI, 0.0, 1.0 );
+    result.y = map(latitude, -PI/2.0, PI/2.0, 0.0, 1.0); 
+    return result;
 }
+
+float3 ToSphere(float2 p) {
+    float radius = 1.0;
+    float longitude = map(p.x, 0.0, 1.0, -PI, PI);
+    float latitude = map(p.y, 0.0, 1.0, -PI / 2.0, PI / 2.0);
+
+    float3 result;
+    result.x = sin(latitude) * cos(longitude);
+    result.y = sin(latitude) * sin(longitude);
+    result.z = cos(latitude) ;
+    return result;
+}
+
+float BorderMask(float2 uv) {
+    float2 c1 = float2(0.0, 0.0);
+    float2 c2 = float2(2.0, 0.0);
+    float2 c3 = float2(2.0, 1.0);
+    float2 c4 = float2(0.0, 1.0);
+    float width1 = 0.010;
+
+    float dLine1 = distanceToLine(c1, c2, uv, width1, width1);
+    float dLine2 = distanceToLine(c2, c3, uv, width1, width1);
+    float dLine3 = distanceToLine(c3, c4, uv, width1, width1);
+    float dLine4 = distanceToLine(c4, c1, uv, width1, width1);
+
+    float borderMask;
+    borderMask = min(dLine1, dLine2);
+    borderMask = min(borderMask, dLine3);
+    borderMask = min(borderMask, dLine4);
+
+    return borderMask;
+}
+
 
 
 //#include "noiseSimplex.cginc"
@@ -37,8 +82,7 @@ RWTexture2D<float> output_texture;
 float frequency;
 float lacunarity;
 float persistance;
-int octaves;
-float scale;
+
 float threshold;
 float2 MapResolution;
 float xOffset;
@@ -51,57 +95,36 @@ float waterLevel;
 void HeightMapCalculation(uint3 id : SV_DispatchThreadID)
 {
     float2 uv = (id.xy) / MapResolution.y;
+
+   float3 uv3D = ToSphere(uv);
     
 
     //map detail
     
-    if (scale <= 0) {
-        scale = 0.001;
-    }
-   
     
     float noiseHeight = 0;
     float amplitude = 1;
-    float2 dimensions = float2(xOffset, yOffset);;
+    float maxAmplitude = 0;
     float2 offset = float2(xOffset, yOffset);
-    float MinNoiseHeight = -10000;
-    float MaxNoiseHeight = 10000;
+    
 
     for (int i = 0; i < 20; i++) {
-        float2 nSample = (id.xy +offset  - dimensions)  / scale * frequency;
-        float noiseValue = snoise(nSample)*2.0 + threshold;
+        float2 nSample = (uv+offset)  / frequency;
+        float noiseValue = snoise(nSample)+threshold;
         
-        noiseHeight += noiseValue * noiseValue * amplitude;
+        noiseHeight += noiseValue * amplitude;
+        maxAmplitude += amplitude;
         amplitude *= persistance ;
         frequency *= lacunarity;
     }
 
-    noiseHeight = noiseHeight / 8.0;
+    noiseHeight = noiseHeight / maxAmplitude;
     
 
-    // border mask
-    
-    float2 c1 = float2(0.0, 0.0);
-    float2 c2 = float2(2.0, 0.0);
-    float2 c3 = float2(2.0, 1.0);
-    float2 c4 = float2(0.0, 1.0);
-    float width1 = 0.010;
-    
-    float dLine1 = distanceToLine(c1, c2, uv, width1, xOffset);
-    float dLine2 = distanceToLine(c2, c3, uv, width1, xOffset);
-    float dLine3 = distanceToLine(c3, c4, uv, width1, xOffset);
-    float dLine4 = distanceToLine(c4, c1, uv, width1, xOffset);
-    
-    float output;
-    output = min(dLine1, dLine2);
-    output = min(output, dLine3);
-    output = min(output, dLine4);
-    float borderNoise = noiseHeight * output * (1 - snoise(uv) / 10);
-    if (borderNoise < waterLevel) {
+    if (noiseHeight < waterLevel) {
         noiseHeight = 0.0;
     }
-    output = noiseHeight * output * (1-snoise(uv)/10);
-    output_texture[id.xy] = output;
+    output_texture[id.xy] = noiseHeight * BorderMask(uv);
 }
 
 

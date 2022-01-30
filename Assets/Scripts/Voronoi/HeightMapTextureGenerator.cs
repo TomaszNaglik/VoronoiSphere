@@ -15,21 +15,16 @@ public class HeightMapTextureGenerator : MonoBehaviour
 
     [Range(0, 1)]
     public float persistance;
-    [Range(0.001f, 2.0f)]
+    [Range(0.001f, 30.0f)]
     public float frequency;
-    [Range(0.001f, 4.0f)]
+    [Range(0.001f, 1.6f)]
     public float lacunarity;
-
-    [Range(-0.5f, 0.5f)]
     public float threshold;
+   
     [Range(0.0f, 1.0f)]
     public float waterLevel;
 
-
-    public float scale;
-    [Range(-1.0f, 1.0f)]
     public float xOffset;
-    [Range(0.0f, 1.0f)]
     public float yOffset;
     
 
@@ -60,7 +55,7 @@ public class HeightMapTextureGenerator : MonoBehaviour
         CS_Heightmap.SetFloat("persistance", persistance);
         CS_Heightmap.SetFloat("lacunarity", lacunarity);
         
-        CS_Heightmap.SetFloat("scale", scale);
+        
         CS_Heightmap.SetFloat("xOffset", xOffset);
         CS_Heightmap.SetFloat("yOffset", yOffset);
         CS_Heightmap.SetFloat("threshold", threshold);
@@ -91,7 +86,7 @@ public class HeightMapTextureGenerator : MonoBehaviour
 
     void Update()
     {
-        //GenerateRenderTexture();
+        GenerateRenderTexture();
 
         //int kernelIndex = this.CS_Heightmap.FindKernel("HeightMapCalculation");
 
